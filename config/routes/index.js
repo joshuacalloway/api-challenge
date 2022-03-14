@@ -9,6 +9,8 @@
 const userRoutes = require("./user.routes.js");
 const roleRoutes = require("./role.routes.js");
 
+const userForAdminRoutes = require("./userForAdmin.routes.js");
+
 const statusRoute = {
   method: "GET",
   path: "/status",
@@ -18,7 +20,7 @@ const statusRoute = {
   },
 };
 
-const routes = [].concat(userRoutes, roleRoutes, statusRoute);
+const routes = [].concat(userRoutes, userForAdminRoutes, roleRoutes, statusRoute);
 
 module.exports = {
   routes,

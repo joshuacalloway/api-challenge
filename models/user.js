@@ -56,6 +56,45 @@ User.prototype.toJSON = function () {
 };
 
 /**
+ * If a user is an admin, find and return user
+ *
+ * @param {Object} user - Sequelize user instance
+ * @returns {Array}
+ */
+User.findCompleteWithPermisson = async function ({ user, userId }) {
+  // Check that the user is an admin
+  const adminRole = await sequelize.models.UserRole.findOne({
+    where: { userId: user.id, roleId: 1 },
+  });
+
+  // If not an admin, reject the request
+  if (!adminRole) throw new Error("Unauthorized");
+  
+  const rolesResult = await sequelize.query(
+    `SELECT r.name FROM "Roles" r JOIN "UserRoles" ur ON r.id = ur.role_id WHERE ur.user_id = :userId`,
+    { replacements: { userId: userId } }
+  );
+
+  const selfResult = await sequelize.query(
+    `SELECT * FROM "Users" u WHERE u.id = :userId`,
+    { replacements: { userId: userId } }
+  );
+
+  const userObj = new User({id: userId});
+
+  const debug = {
+    ...userObj,
+    roles: _.map(rolesResult[0], "name"),
+    email: _.head(_.map(selfResult[0], "email")),
+    uuid: _.head(_.map(selfResult[0], "uuid")),
+    createdAt: _.head(_.map(selfResult[0], "created_at")),
+    updatedAt: _.head(_.map(selfResult[0], "updated_at")),
+  };
+
+  return debug;
+};
+
+/**
  * Find a user along with its roles
  *
  * @returns {Object}
@@ -68,9 +107,18 @@ User.prototype.findComplete = async function () {
     { replacements: { userId: user.id } }
   );
 
+  const selfResult = await sequelize.query(
+    `SELECT * FROM "Users" u WHERE u.id = :userId`,
+    { replacements: { userId: user.id } }
+  );
+
   return {
     ...userObj,
     roles: _.map(rolesResult[0], "name"),
+    email: _.head(_.map(selfResult[0], "email")),
+    uuid: _.head(_.map(selfResult[0], "uuid")),
+    createdAt: _.head(_.map(selfResult[0], "created_at")),
+    updatedAt: _.head(_.map(selfResult[0], "updated_at")),
   };
 };
 
