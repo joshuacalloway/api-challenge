@@ -16,8 +16,45 @@ describe("User CRUD operations -", () => {
   });
 
   describe("GET /users/{userId}", () => {
-    it("should read a given user's information if requester is an admin", async () => {});
-    it("should return 401 unauthorized if requester is not an admin", async () => {});
+    it("should read a given user's information if requester is an admin", async () => {
+      // Create an admin user and a JWT access token for that user
+      scope.user = await sequelize.models.User.create({
+        email: `admin@example.com`,
+      });
+      await Test.assignRoleForUser({
+        user: scope.user,
+        roleName: "admin",
+      });
+      scope.accessToken = await scope.user.generateAccessToken();          
+      const { statusCode, result } = await server.inject({
+        method: "get",
+        url: `${uri}/users/3`,
+        headers: {
+          authorization: `Bearer ${scope.accessToken}`,
+        },
+      });
+      console.log(`accessToken is ${scope.accessToken}`)
+
+      expect(statusCode).to.equal(200);
+      return Promise.resolve();
+    });
+    it("should return 401 unauthorized if requester is not an admin", async () => {
+      // Create a user and a JWT access token for that user
+      scope.user = await sequelize.models.User.create({
+        email: `user@example.com`,
+      });
+      scope.accessToken = await scope.user.generateAccessToken();          
+      const { statusCode, result } = await server.inject({
+        method: "get",
+        url: `${uri}/users/2`,
+        headers: {
+          authorization: `Bearer ${scope.accessToken}`,
+        },
+      });
+      expect(statusCode).to.equal(401);
+
+      return Promise.resolve()
+    });
   });
 
   describe("GET /self", () => {
@@ -37,7 +74,7 @@ describe("User CRUD operations -", () => {
         user: scope.user,
         roleName: "member",
       });
-
+      console.log(`Access token for user is\n${scope.accessToken}`)
       // Make the request
       const { statusCode, result } = await server.inject({
         method: "get",
@@ -56,6 +93,28 @@ describe("User CRUD operations -", () => {
       expect(result.roles).to.have.members(["owner", "member"]);
 
       return Promise.resolve();
+    });
+
+    describe("generate Admin access token", () => {
+      it("should read own information", async () => {
+        // Create a user and a JWT access token for that user
+        scope.user = await sequelize.models.User.create({
+          email: `user@example.com`,
+        });
+        scope.accessToken = await scope.user.generateAccessToken();
+  
+        // Add 2 roles to the user
+        await Test.assignRoleForUser({
+          user: scope.user,
+          roleName: "admin",
+        });
+        await Test.assignRoleForUser({
+          user: scope.user,
+          roleName: "member",
+        });
+        console.log(`Access token for admin is\n${scope.accessToken}`)
+        return Promise.resolve();
+      });
     });
   });
 });
